@@ -1,20 +1,41 @@
 import sqlite3
+from pathlib import Path
 
-connection = sqlite3.connect('database.db')
+DB_PATH = Path("database.db")
+SCHEMA_PATH = Path("schema.sql")
 
-with open('schema.sql') as f:
-    connection.executescript(f.read())
+def main():
+    if not SCHEMA_PATH.exists():
+        raise FileNotFoundError("schema.sql introuvable")
 
-cur = connection.cursor()
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA foreign_keys = ON;")
+    cursor = conn.cursor()
 
-cur.execute("INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)",('DUPONT', 'Emilie', '123, Rue des Lilas, 75001 Paris'))
-cur.execute("INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)",('LEROUX', 'Lucas', '456, Avenue du Soleil, 31000 Toulouse'))
-cur.execute("INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)",('MARTIN', 'Amandine', '789, Rue des Érables, 69002 Lyon'))
-cur.execute("INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)",('TREMBLAY', 'Antoine', '1010, Boulevard de la Mer, 13008 Marseille'))
-cur.execute("INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)",('LAMBERT', 'Sarah', '222, Avenue de la Liberté, 59000 Lille'))
-cur.execute("INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)",('GAGNON', 'Nicolas', '456, Boulevard des Cerisiers, 69003 Lyon'))
-cur.execute("INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)",('DUBOIS', 'Charlotte', '789, Rue des Roses, 13005 Marseille'))
-cur.execute("INSERT INTO clients (nom, prenom, adresse) VALUES (?, ?, ?)",('LEFEVRE', 'Thomas', '333, Rue de la Paix, 75002 Paris'))
+    cursor.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
 
-connection.commit()
-connection.close()
+    # Seed: 1 admin + 1 user (pour tester)
+    cursor.execute(
+        "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+        ("admin", "adminpass", "admin")
+    )
+    cursor.execute(
+        "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+        ("user", "12345", "user")
+    )
+
+    # Seed: 2 livres + stock
+    cursor.execute("INSERT INTO books (isbn, title, author) VALUES (?, ?, ?)", ("978-2-123", "Le Petit Prince", "Antoine de Saint-Exupéry"))
+    book1_id = cursor.lastrowid
+    cursor.execute("INSERT INTO book_stock (book_id, total, available) VALUES (?, ?, ?)", (book1_id, 3, 3))
+
+    cursor.execute("INSERT INTO books (isbn, title, author) VALUES (?, ?, ?)", ("978-9-999", "1984", "George Orwell"))
+    book2_id = cursor.lastrowid
+    cursor.execute("INSERT INTO book_stock (book_id, total, available) VALUES (?, ?, ?)", (book2_id, 2, 2))
+
+    conn.commit()
+    conn.close()
+    print("DB créée + données initiales OK")
+
+if __name__ == "__main__":
+    main()
