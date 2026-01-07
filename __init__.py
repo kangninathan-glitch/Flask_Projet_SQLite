@@ -7,6 +7,17 @@ import sqlite3
 app = Flask(__name__)                                                                                                                  
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'  # Clé secrète pour les sessions
 
+def get_db():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def require_login():
+    return session.get("user_id") is not None
+
+def require_role(role):
+    return session.get("role") == role
+
 # Fonction pour créer une clé "authentifie" dans la session utilisateur
 def est_authentifie():
     return session.get('authentifie')
@@ -115,6 +126,42 @@ def fiche_nom():
         conn.close()
 
     return render_template('fiche_nom.html', data=data, nom=nom_recherche)
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        conn = get_db()
+        user = conn.execute(
+            "SELECT id, username, role FROM users WHERE username=? AND password=?",
+            (username, password)
+        ).fetchone()
+        conn.close()
+
+        if user:
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            session["role"] = user["role"]
+            return redirect(url_for("home"))
+
+        return render_template("login.html", error=True)
+
+    return render_template("login.html", error=False)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+@app.route("/")
+def home():
+    if not require_login():
+        return redirect(url_for("login"))
+    return render_template("home.html", username=session.get("username"), role=session.get("role"))
+
+
 
                                                                                                                                        
 if __name__ == "__main__":
