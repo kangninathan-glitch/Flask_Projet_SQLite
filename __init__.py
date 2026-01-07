@@ -11,6 +11,10 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'  # Clé secrète pour les sessions
 def est_authentifie():
     return session.get('authentifie')
 
+def est_user_authentifie():
+    return session.get('user_authentifie')
+
+
 @app.route('/')
 def index():
     return redirect(url_for('formulaire_client'))
@@ -75,6 +79,43 @@ def enregistrer_client():
     conn.commit()
     conn.close()
     return redirect('/consultation/')  # Rediriger vers la page d'accueil après l'enregistrement
+
+@app.route('/auth_user', methods=['GET', 'POST'])
+def auth_user():
+    if request.method == 'POST':
+        if request.form.get('username') == 'user' and request.form.get('password') == '12345':
+            session['user_authentifie'] = True
+            return redirect(url_for('fiche_nom'))
+        else:
+            return render_template('formulaire_auth_user.html', error=True)
+
+    return render_template('formulaire_auth_user.html', error=False)
+
+@app.route('/fiche_nom/', methods=['GET', 'POST'])
+def fiche_nom():
+    # Protection USER
+    if not est_user_authentifie():
+        return redirect(url_for('auth_user'))
+
+    data = []
+    nom_recherche = ""
+
+    # On accepte soit POST (form), soit GET (?nom=...)
+    if request.method == 'POST':
+        nom_recherche = request.form.get('nom', '').strip()
+    else:
+        nom_recherche = request.args.get('nom', '').strip()
+
+    if nom_recherche:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        # Recherche partielle (plus pratique) : DUPONT, du, etc.
+        cursor.execute("SELECT * FROM clients WHERE nom LIKE ?", (f"%{nom_recherche}%",))
+        data = cursor.fetchall()
+        conn.close()
+
+    return render_template('fiche_nom.html', data=data, nom=nom_recherche)
+
                                                                                                                                        
 if __name__ == "__main__":
   app.run(debug=True)
