@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Recherche client</title>
+</head>
+<body>
+  <h1>Recherche d'un client par nom</h1>
+
+  <form method="post">
+    <label>Nom :</label>
+    <input type="text" name="nom" value="{{ nom }}" required>
+    <button type="submit">Rechercher</button>
+  </form>
+
+  <hr>
+
+  {% if nom %}
+    <h2>Résultats pour "{{ nom }}"</h2>
+
+    {% if data and data|length > 0 %}
+      <table border="1" cellpadding="6">
+        <tr>
+          <th>ID</th>
+          <th>Created</th>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Adresse</th>
+        </tr>
+        {% for row in data %}
+          <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ row[2] }}</td>
+            <td>{{ row[3] }}</td>
+            <td>{{ row[4] }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p>Aucun client trouvé.</p>
+    {% endif %}
+  {% endif %}
+
+</body>
+</html>
