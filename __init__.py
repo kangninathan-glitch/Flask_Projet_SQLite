@@ -478,6 +478,105 @@ def admin_books():
 
     return render_template("admin_books.html", msg=msg)
 
+@app.route("/books", methods=["GET"])
+def books_page():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    q = request.args.get("q", "").strip()
+    only_available = request.args.get("available", "0") == "1"
+
+    conn = get_db()
+    sql = """
+      SELECT b.id, b.isbn, b.title, b.author, s.total, s.available
+      FROM books b
+      JOIN book_stock s ON s.book_id = b.id
+      WHERE 1=1
+    """
+    params = []
+    if q:
+        sql += " AND (b.title LIKE ? OR b.author LIKE ? OR b.isbn LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like]
+    if only_available:
+        sql += " AND s.available > 0"
+    sql += " ORDER BY b.id DESC"
+
+    books = conn.execute(sql, params).fetchall()
+    conn.close()
+
+    return render_template("books.html", books=books, q=q, available=only_available, role=session.get("role"))
+
+
+@app.route("/books/borrow", methods=["POST"])
+def books_borrow_action():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    book_id = int(request.form.get("book_id"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    stock = cur.execute("SELECT available FROM book_stock WHERE book_id=?", (book_id,)).fetchone()
+    if not stock or stock["available"] <= 0:
+        conn.close()
+        return redirect(url_for("books_page", error="not_available"))
+
+    cur.execute("UPDATE book_stock SET available = available - 1 WHERE book_id=?", (book_id,))
+    cur.execute("INSERT INTO loans (book_id, user_id) VALUES (?, ?)", (book_id, session["user_id"]))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("books_page", success="borrowed"))
+
+
+@app.route("/loans", methods=["GET"])
+def loans_page():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    loans = conn.execute("""
+        SELECT l.id AS loan_id, l.book_id, l.created_at, l.returned_at,
+               b.title, b.author
+        FROM loans l
+        JOIN books b ON b.id = l.book_id
+        WHERE l.user_id = ?
+        ORDER BY l.id DESC
+    """, (session["user_id"],)).fetchall()
+    conn.close()
+
+    return render_template("loans.html", loans=loans)
+
+
+@app.route("/loans/return", methods=["POST"])
+def loans_return_action():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    loan_id = int(request.form.get("loan_id"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    loan = cur.execute("""
+        SELECT book_id
+        FROM loans
+        WHERE id=? AND user_id=? AND returned_at IS NULL
+    """, (loan_id, session["user_id"])).fetchone()
+
+    if not loan:
+        conn.close()
+        return redirect(url_for("loans_page"))
+
+    cur.execute("UPDATE loans SET returned_at=datetime('now') WHERE id=?", (loan_id,))
+    cur.execute("UPDATE book_stock SET available = available + 1 WHERE book_id=?", (loan["book_id"],))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("loans_page"))
+
 
                                                                                                                                        
 if __name__ == "__main__":
