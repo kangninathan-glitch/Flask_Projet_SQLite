@@ -538,7 +538,7 @@ def loans_page():
 
     conn = get_db()
     loans = conn.execute("""
-        SELECT l.id AS loan_id, l.book_id, l.created_at, l.returned_at,
+        SELECT l.id AS loan_id, l.book_id, l.loaned_at, l.returned_at,
                b.title, b.author
         FROM loans l
         JOIN books b ON b.id = l.book_id
@@ -548,6 +548,7 @@ def loans_page():
     conn.close()
 
     return render_template("loans.html", loans=loans)
+
 
 
 @app.route("/loans/return", methods=["POST"])
