@@ -1,59 +1,71 @@
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Mes emprunts</title>
-</head>
-<body>
-  <h1>Mes emprunts</h1>
+{% extends "base.html" %}
+{% block title %}Mes emprunts{% endblock %}
 
-  <p>
-    <a href="/">Accueil</a> |
-    <a href="/books">Livres</a> |
-    <a href="/logout">Déconnexion</a>
-  </p>
+{% block content %}
 
-  <hr>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="fw-bold">📦 Mes emprunts</h1>
 
-  {% if loans|length == 0 %}
-    <p>Aucun emprunt.</p>
-  {% else %}
-    <table border="1" cellpadding="6">
-      <tr>
-        <th>Loan ID</th>
-        <th>Livre</th>
-        <th>Auteur</th>
-        <th>Date emprunt</th>
-        <th>Statut</th>
-        <th>Action</th>
-      </tr>
+  <div>
+    <a href="/" class="btn btn-outline-primary btn-sm">Accueil</a>
+    <a href="/books" class="btn btn-outline-secondary btn-sm">Livres</a>
+    <a href="/logout" class="btn btn-danger btn-sm">Déconnexion</a>
+  </div>
+</div>
 
-      {% for l in loans %}
-      <tr>
-        <td>{{ l["loan_id"] }}</td>
-        <td>{{ l["title"] }}</td>
-        <td>{{ l["author"] }}</td>
-        <td>{{ l["loaned_at"] }}</td>
-        <td>
-          {% if l["returned_at"] %}
-            Retourné
-          {% else %}
-            En cours
-          {% endif %}
-        </td>
-        <td>
-          {% if not l["returned_at"] %}
-            <form method="post" action="/loans/return" style="display:inline;">
-              <input type="hidden" name="loan_id" value="{{ l['loan_id'] }}">
-              <button type="submit">Retourner</button>
-            </form>
-          {% else %}
-            —
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </table>
-  {% endif %}
-</body>
-</html>
+<hr class="mb-4">
+
+{% if loans|length == 0 %}
+  <div class="alert alert-info text-center shadow-sm">
+    Aucun emprunt pour le moment.
+  </div>
+{% else %}
+
+<table class="table table-striped table-hover shadow-sm">
+  <thead class="table-dark">
+    <tr>
+      <th>Loan ID</th>
+      <th>Livre</th>
+      <th>Auteur</th>
+      <th>Date emprunt</th>
+      <th>Statut</th>
+      <th class="text-center">Action</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for l in loans %}
+    <tr>
+      <td>{{ l.loan_id }}</td>
+      <td class="fw-semibold">{{ l.title }}</td>
+      <td>{{ l.author }}</td>
+      <td>{{ l.loaned_at }}</td>
+
+      <td>
+        {% if l.returned_at %}
+          <span class="badge bg-success">Retourné</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">En cours</span>
+        {% endif %}
+      </td>
+
+      <td class="text-center">
+        {% if not l.returned_at %}
+          <form method="post" action="/loans/return" class="d-inline">
+            <input type="hidden" name="loan_id" value="{{ l.loan_id }}">
+            <button type="submit" class="btn btn-sm btn-primary">
+              Retourner
+            </button>
+          </form>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endif %}
+
+{% endblock %}
