@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Bibliothèque</title>
+</head>
+<body>
+  <h1>Bibliothèque</h1>
+  <p>Connecté : {{ username }} ({{ role }})</p>
+
+  <p><a href="/logout">Se déconnecter</a></p>
+
+  <h2>API</h2>
+  <ul>
+    <li><a href="/api/books">/api/books</a></li>
+    <li><a href="/api/books?available=1">/api/books?available=1</a></li>
+    <li><a href="/api/books?q=prince">/api/books?q=prince</a></li>
+  </ul>
+</body>
+</html>
