@@ -455,6 +455,30 @@ def api_stock_reset(book_id):
     return jsonify({"ok": True})
 
 
+@app.route("/admin/books", methods=["GET", "POST"])
+def admin_books():
+    if not require_login() or not require_role("admin"):
+        return redirect(url_for("login"))
+
+    msg = None
+    if request.method == "POST":
+        title = request.form.get("title","").strip()
+        author = request.form.get("author","").strip()
+        isbn = request.form.get("isbn","").strip()
+        total = int(request.form.get("total","1"))
+
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO books (isbn, title, author) VALUES (?, ?, ?)", (isbn, title, author))
+        book_id = cur.lastrowid
+        cur.execute("INSERT INTO book_stock (book_id, total, available) VALUES (?, ?, ?)", (book_id, total, total))
+        conn.commit()
+        conn.close()
+        msg = f"Livre ajouté (id={book_id})"
+
+    return render_template("admin_books.html", msg=msg)
+
+
                                                                                                                                        
 if __name__ == "__main__":
   app.run(debug=True)
