@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Livres</title>
+</head>
+<body>
+  <h1>Livres</h1>
+
+  <p>
+    <a href="/">Accueil</a> |
+    <a href="/loans">Mes emprunts</a> |
+    <a href="/logout">Déconnexion</a>
+    {% if role == "admin" %} | <a href="/admin/books">Admin: ajouter livre</a>{% endif %}
+  </p>
+
+  <form method="get" action="/books">
+    <label>Recherche :</label>
+    <input name="q" value="{{ q }}">
+    <label>
+      <input type="checkbox" name="available" value="1" {% if available %}checked{% endif %}>
+      seulement disponibles
+    </label>
+    <button type="submit">Rechercher</button>
+  </form>
+
+  <hr>
+
+  {% if books|length == 0 %}
+    <p>Aucun livre.</p>
+  {% else %}
+    <table border="1" cellpadding="6">
+      <tr>
+        <th>ID</th>
+        <th>Titre</th>
+        <th>Auteur</th>
+        <th>ISBN</th>
+        <th>Total</th>
+        <th>Dispo</th>
+        <th>Action</th>
+      </tr>
+      {% for b in books %}
+      <tr>
+        <td>{{ b["id"] }}</td>
+        <td>{{ b["title"] }}</td>
+        <td>{{ b["author"] }}</td>
+        <td>{{ b["isbn"] }}</td>
+        <td>{{ b["total"] }}</td>
+        <td>{{ b["available"] }}</td>
+        <td>
+          {% if b["available"] > 0 %}
+            <form method="post" action="/books/borrow" style="display:inline;">
+              <input type="hidden" name="book_id" value="{{ b['id'] }}">
+              <button type="submit">Emprunter</button>
+            </form>
+          {% else %}
+            Indisponible
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+</body>
+</html>
