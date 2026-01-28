@@ -32,10 +32,6 @@ def home():
         return redirect(url_for("login"))
     return render_template("home.html", username=session.get("username"), role=session.get("role"))
 
-@app.route("/clients")
-def clients_home():
-    return redirect(url_for("formulaire_client"))
-
 @app.route('/lecture')
 def lecture():
     if not est_authentifie():
