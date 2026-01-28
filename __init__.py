@@ -373,6 +373,87 @@ def api_users_update(user_id):
 
     return jsonify({"ok": True})
 
+@app.route("/api/stock/<int:book_id>", methods=["PATCH"])
+def api_stock_update(book_id):
+    if not require_login() or not require_role("admin"):
+        return jsonify({"error": "forbidden"}), 403
+
+    payload = request.get_json(force=True)
+    new_total = payload.get("total")
+    new_available = payload.get("available")
+
+    if new_total is None and new_available is None:
+        return jsonify({"error": "bad_request"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Vérifier si le livre existe
+    stock = cur.execute("SELECT total, available FROM book_stock WHERE book_id=?", (book_id,)).fetchone()
+    if not stock:
+        conn.close()
+        return jsonify({"error": "not_found"}), 404
+
+    updates = []
+    params = []
+
+    if new_total is not None:
+        new_total = int(new_total)
+        if new_total < 0:
+            return jsonify({"error": "invalid_total"}), 400
+        updates.append("total=?")
+        params.append(new_total)
+
+    if new_available is not None:
+        new_available = int(new_available)
+        if new_available < 0:
+            return jsonify({"error": "invalid_available"}), 400
+        updates.append("available=?")
+        params.append(new_available)
+
+    params.append(book_id)
+
+    cur.execute(f"UPDATE book_stock SET {', '.join(updates)} WHERE book_id=?", params)
+    conn.commit()
+    conn.close()
+
+    return jsonify({"ok": True})
+
+@app.route("/api/stock/<int:book_id>", methods=["GET"])
+def api_stock_get(book_id):
+    if not require_login():
+        return jsonify({"error": "unauthorized"}), 401
+
+    conn = get_db()
+    row = conn.execute("""
+        SELECT b.id, b.title, b.author,
+               s.total, s.available
+        FROM books b
+        JOIN book_stock s ON s.book_id=b.id
+        WHERE b.id=?
+    """, (book_id,)).fetchone()
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "not_found"}), 404
+
+    return jsonify(dict(row))
+
+
+@app.route("/api/stock/reset/<int:book_id>", methods=["POST"])
+def api_stock_reset(book_id):
+    if not require_login() or not require_role("admin"):
+        return jsonify({"error": "forbidden"}), 403
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE book_stock SET available = total WHERE book_id=?", (book_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"ok": True})
+
 
                                                                                                                                        
 if __name__ == "__main__":
