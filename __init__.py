@@ -271,6 +271,10 @@ def api_return():
     conn.close()
     return jsonify({"ok": True})
 
+@app.route("/clients")
+def clients_home():
+    return redirect(url_for("formulaire_client"))
+
                                                                                                                                        
 if __name__ == "__main__":
   app.run(debug=True)
