@@ -27,8 +27,14 @@ def est_user_authentifie():
 
 
 @app.route('/')
-def index():
-    return redirect(url_for('formulaire_client'))
+def home():
+    if not require_login():
+        return redirect(url_for("login"))
+    return render_template("home.html", username=session.get("username"), role=session.get("role"))
+
+@app.route("/clients")
+def clients_home():
+    return redirect(url_for("formulaire_client"))
 
 @app.route('/lecture')
 def lecture():
