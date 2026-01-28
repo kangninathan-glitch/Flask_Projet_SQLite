@@ -161,7 +161,113 @@ def home():
         return redirect(url_for("login"))
     return render_template("home.html", username=session.get("username"), role=session.get("role"))
 
+@app.route("/api/books", methods=["GET"])
+def api_books_list():
+    if not require_login():
+        return jsonify({"error": "unauthorized"}), 401
 
+    q = request.args.get("q", "").strip()
+    only_available = request.args.get("available", "0") == "1"
+
+    conn = get_db()
+    sql = """
+      SELECT b.id, b.isbn, b.title, b.author, s.total, s.available
+      FROM books b
+      JOIN book_stock s ON s.book_id = b.id
+      WHERE 1=1
+    """
+    params = []
+    if q:
+        sql += " AND (b.title LIKE ? OR b.author LIKE ? OR b.isbn LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like]
+    if only_available:
+        sql += " AND s.available > 0"
+
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/books", methods=["POST"])
+def api_books_create():
+    if not require_login() or not require_role("admin"):
+        return jsonify({"error": "forbidden"}), 403
+
+    payload = request.get_json(force=True)
+    title = payload.get("title", "").strip()
+    author = payload.get("author", "").strip()
+    isbn = payload.get("isbn", "").strip()
+    total = int(payload.get("total", 1))
+
+    if not title or not author or total < 0:
+        return jsonify({"error": "bad_request"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO books (isbn, title, author) VALUES (?, ?, ?)", (isbn, title, author))
+    book_id = cur.lastrowid
+    cur.execute("INSERT INTO book_stock (book_id, total, available) VALUES (?, ?, ?)", (book_id, total, total))
+    conn.commit()
+    conn.close()
+    return jsonify({"id": book_id}), 201
+
+@app.route("/api/books/<int:book_id>", methods=["DELETE"])
+def api_books_delete(book_id):
+    if not require_login() or not require_role("admin"):
+        return jsonify({"error": "forbidden"}), 403
+
+    conn = get_db()
+    conn.execute("DELETE FROM books WHERE id=?", (book_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True})
+
+@app.route("/api/loans/borrow", methods=["POST"])
+def api_borrow():
+    if not require_login():
+        return jsonify({"error": "unauthorized"}), 401
+
+    payload = request.get_json(force=True)
+    book_id = int(payload.get("book_id"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    stock = cur.execute("SELECT available FROM book_stock WHERE book_id=?", (book_id,)).fetchone()
+    if not stock or stock["available"] <= 0:
+        conn.close()
+        return jsonify({"error": "not_available"}), 409
+
+    cur.execute("UPDATE book_stock SET available = available - 1 WHERE book_id=?", (book_id,))
+    cur.execute("INSERT INTO loans (book_id, user_id) VALUES (?, ?)", (book_id, session["user_id"]))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True}), 201
+
+@app.route("/api/loans/return", methods=["POST"])
+def api_return():
+    if not require_login():
+        return jsonify({"error": "unauthorized"}), 401
+
+    payload = request.get_json(force=True)
+    loan_id = int(payload.get("loan_id"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    loan = cur.execute(
+        "SELECT book_id FROM loans WHERE id=? AND user_id=? AND returned_at IS NULL",
+        (loan_id, session["user_id"])
+    ).fetchone()
+    if not loan:
+        conn.close()
+        return jsonify({"error": "not_found"}), 404
+
+    cur.execute("UPDATE loans SET returned_at=datetime('now') WHERE id=?", (loan_id,))
+    cur.execute("UPDATE book_stock SET available = available + 1 WHERE book_id=?", (loan["book_id"],))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True})
 
                                                                                                                                        
 if __name__ == "__main__":
