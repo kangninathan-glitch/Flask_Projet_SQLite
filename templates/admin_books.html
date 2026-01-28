@@ -1,0 +1,13 @@
+<h1>Admin - Ajouter un livre</h1>
+
+{% if msg %}<p style="color:green">{{ msg }}</p>{% endif %}
+
+<form method="post">
+  <p>ISBN: <input name="isbn"></p>
+  <p>Titre: <input name="title" required></p>
+  <p>Auteur: <input name="author" required></p>
+  <p>Stock total: <input name="total" type="number" value="1" min="0"></p>
+  <button type="submit">Ajouter</button>
+</form>
+
+<p><a href="/api/books">Voir les livres (JSON)</a></p>
