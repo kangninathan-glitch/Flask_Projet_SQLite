@@ -23,6 +23,7 @@
         <th>Loan ID</th>
         <th>Livre</th>
         <th>Auteur</th>
+        <th>Date emprunt</th>
         <th>Statut</th>
         <th>Action</th>
       </tr>
@@ -32,6 +33,7 @@
         <td>{{ l["loan_id"] }}</td>
         <td>{{ l["title"] }}</td>
         <td>{{ l["author"] }}</td>
+        <td>{{ l["loaned_at"] }}</td>
         <td>
           {% if l["returned_at"] %}
             Retourné
