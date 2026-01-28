@@ -26,12 +26,6 @@ def est_user_authentifie():
     return session.get('user_authentifie')
 
 
-@app.route('/')
-def home():
-    if not require_login():
-        return redirect(url_for("login"))
-    return render_template("home.html", username=session.get("username"), role=session.get("role"))
-
 @app.route('/lecture')
 def lecture():
     if not est_authentifie():
