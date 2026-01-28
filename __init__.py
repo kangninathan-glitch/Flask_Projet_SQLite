@@ -269,6 +269,111 @@ def api_return():
 def clients_home():
     return redirect(url_for("formulaire_client"))
 
+@app.route("/api/users", methods=["GET"])
+def api_users_list():
+    if not require_login() or not require_role("admin"):
+        return jsonify({"error": "forbidden"}), 403
+
+    conn = get_db()
+    rows = conn.execute("SELECT id, username, role FROM users ORDER BY id").fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/users", methods=["POST"])
+def api_users_create():
+    if not require_login() or not require_role("admin"):
+        return jsonify({"error": "forbidden"}), 403
+
+    payload = request.get_json(force=True)
+    username = (payload.get("username") or "").strip()
+    password = (payload.get("password") or "").strip()
+    role = (payload.get("role") or "user").strip()
+
+    if not username or not password or role not in ("admin", "user"):
+        return jsonify({"error": "bad_request"}), 400
+
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            (username, password, role)
+        )
+        conn.commit()
+        user_id = cur.lastrowid
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({"error": "username_already_exists"}), 409
+
+    conn.close()
+    return jsonify({"id": user_id, "username": username, "role": role}), 201
+
+
+@app.route("/api/users/<int:user_id>", methods=["DELETE"])
+def api_users_delete(user_id):
+    if not require_login() or not require_role("admin"):
+        return jsonify({"error": "forbidden"}), 403
+
+    # Sécurité: empêcher de supprimer son propre compte
+    if session.get("user_id") == user_id:
+        return jsonify({"error": "cannot_delete_self"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM users WHERE id=?", (user_id,))
+    conn.commit()
+    deleted = cur.rowcount
+    conn.close()
+
+    if deleted == 0:
+        return jsonify({"error": "not_found"}), 404
+
+    return jsonify({"ok": True})
+
+@app.route("/api/users/<int:user_id>", methods=["PATCH"])
+def api_users_update(user_id):
+    if not require_login() or not require_role("admin"):
+        return jsonify({"error": "forbidden"}), 403
+
+    payload = request.get_json(force=True)
+    new_password = payload.get("password")
+    new_role = payload.get("role")
+
+    if new_role is not None and new_role not in ("admin", "user"):
+        return jsonify({"error": "bad_request"}), 400
+
+    fields = []
+    params = []
+
+    if new_password is not None:
+        new_password = str(new_password).strip()
+        if not new_password:
+            return jsonify({"error": "bad_request"}), 400
+        fields.append("password=?")
+        params.append(new_password)
+
+    if new_role is not None:
+        fields.append("role=?")
+        params.append(new_role)
+
+    if not fields:
+        return jsonify({"error": "bad_request"}), 400
+
+    params.append(user_id)
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(f"UPDATE users SET {', '.join(fields)} WHERE id=?", params)
+    conn.commit()
+    updated = cur.rowcount
+    conn.close()
+
+    if updated == 0:
+        return jsonify({"error": "not_found"}), 404
+
+    return jsonify({"ok": True})
+
+
                                                                                                                                        
 if __name__ == "__main__":
   app.run(debug=True)
