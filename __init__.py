@@ -585,7 +585,7 @@ def tasks_list():
 
     conn = get_db()
     tasks = conn.execute(
-        "SELECT id, title, description, done, created_at FROM tasks WHERE user_id=? ORDER BY created_at DESC",
+        "SELECT id, title, description, completed, created_at FROM tasks WHERE user_id=? ORDER BY created_at DESC",
         (session["user_id"],)
     ).fetchall()
     conn.close()
