@@ -628,22 +628,6 @@ def tasks_done(task_id):
     return redirect(url_for("tasks_list"))
 
 
-@app.route("/tasks/done/<int:task_id>", methods=["POST"])
-def tasks_done(task_id):
-    if not require_login():
-        return redirect(url_for("login"))
-
-    conn = get_db()
-    conn.execute(
-        "UPDATE tasks SET done=1 WHERE id=? AND user_id=?",
-        (task_id, session["user_id"])
-    )
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for("tasks_list"))
-
-
 @app.route("/tasks/delete/<int:task_id>", methods=["POST"])
 def tasks_delete(task_id):
     if not require_login():
