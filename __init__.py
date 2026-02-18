@@ -585,7 +585,7 @@ def tasks_list():
 
     conn = get_db()
     tasks = conn.execute(
-        "SELECT id, title, description, completed, created_at FROM tasks WHERE user_id=? ORDER BY created_at DESC",
+        "SELECT id, title, description, due_date, completed, created_at FROM tasks WHERE user_id=? ORDER BY created_at DESC",
         (session["user_id"],)
     ).fetchall()
     conn.close()
@@ -599,15 +599,16 @@ def tasks_add():
 
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
+    due_date = request.form.get("due_date")  # format YYYY-MM-DD ou None
 
     if title:
-        conn = get_db()
-        conn.execute(
-            "INSERT INTO tasks (user_id, title, description) VALUES (?, ?, ?)",
-            (session["user_id"], title, description)
-        )
-        conn.commit()
-        conn.close()
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO tasks (user_id, title, description, due_date, completed) VALUES (?, ?, ?, ?, 0)",
+        (session["user_id"], title, description, due_date)
+    )
+    conn.commit()
+    conn.close()
 
     return redirect(url_for("tasks_list"))
 
