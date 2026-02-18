@@ -578,6 +578,87 @@ def loans_return_action():
 
     return redirect(url_for("loans_page"))
 
+@app.route("/tasks")
+def tasks_list():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    tasks = conn.execute(
+        "SELECT id, title, description, done, created_at FROM tasks WHERE user_id=? ORDER BY created_at DESC",
+        (session["user_id"],)
+    ).fetchall()
+    conn.close()
+
+    return render_template("tasks.html", tasks=tasks)
+
+@app.route("/tasks/add", methods=["POST"])
+def tasks_add():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+
+    if title:
+        conn = get_db()
+        conn.execute(
+            "INSERT INTO tasks (user_id, title, description) VALUES (?, ?, ?)",
+            (session["user_id"], title, description)
+        )
+        conn.commit()
+        conn.close()
+
+    return redirect(url_for("tasks_list"))
+
+
+@app.route("/tasks/done/<int:task_id>", methods=["POST"])
+def tasks_done(task_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    conn.execute(
+        "UPDATE tasks SET done=1 WHERE id=? AND user_id=?",
+        (task_id, session["user_id"])
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("tasks_list"))
+
+
+@app.route("/tasks/done/<int:task_id>", methods=["POST"])
+def tasks_done(task_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    conn.execute(
+        "UPDATE tasks SET done=1 WHERE id=? AND user_id=?",
+        (task_id, session["user_id"])
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("tasks_list"))
+
+
+@app.route("/tasks/delete/<int:task_id>", methods=["POST"])
+def tasks_delete(task_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    conn.execute(
+        "DELETE FROM tasks WHERE id=? AND user_id=?",
+        (task_id, session["user_id"])
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("tasks_list"))
+
 
                                                                                                                                        
 if __name__ == "__main__":
