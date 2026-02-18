@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>📝 Mes tâches</h1>
+
+<form method="post" action="/tasks/add" class="mb-3">
+  <input name="title" placeholder="Titre de la tâche" required>
+  <input name="description" placeholder="Description">
+  <button type="submit">Ajouter</button>
+</form>
+
+<hr>
+
+{% if tasks|length == 0 %}
+  <p>Aucune tâche.</p>
+{% else %}
+  <table class="table">
+    <tr>
+      <th>Titre</th>
+      <th>Description</th>
+      <th>Statut</th>
+      <th>Action</th>
+    </tr>
+
+    {% for t in tasks %}
+    <tr>
+      <td>{{ t["title"] }}</td>
+      <td>{{ t["description"] }}</td>
+      <td>
+        {% if t["done"] %}
+          ✅ Terminée
+        {% else %}
+          ⏳ En cours
+        {% endif %}
+      </td>
+      <td>
+        {% if not t["done"] %}
+        <form method="post" action="/tasks/done/{{ t['id'] }}" style="display:inline;">
+          <button>Terminer</button>
+        </form>
+        {% endif %}
+
+        <form method="post" action="/tasks/delete/{{ t['id'] }}" style="display:inline;">
+          <button>Supprimer</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+{% endblock %}
