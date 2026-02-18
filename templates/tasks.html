@@ -19,6 +19,7 @@
     <tr>
       <th>Titre</th>
       <th>Description</th>
+      <th>Échéance</th>
       <th>Statut</th>
       <th>Action</th>
     </tr>
@@ -27,15 +28,25 @@
     <tr>
       <td>{{ t["title"] }}</td>
       <td>{{ t["description"] }}</td>
+
       <td>
-        {% if t.completed %}
+        {% if t["due_date"] %}
+          {{ t["due_date"] }}
+        {% else %}
+          —
+        {% endif %}
+      </td>
+
+      <td>
+        {% if t["completed"] %}
           ✅ Terminée
         {% else %}
           ⏳ En cours
         {% endif %}
       </td>
+
       <td>
-        {% if not t["done"] %}
+        {% if not t["completed"] %}
         <form method="post" action="/tasks/done/{{ t['id'] }}" style="display:inline;">
           <button>Terminer</button>
         </form>
@@ -49,5 +60,6 @@
     {% endfor %}
   </table>
 {% endif %}
+
 
 {% endblock %}
