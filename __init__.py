@@ -619,7 +619,7 @@ def tasks_done(task_id):
 
     conn = get_db()
     conn.execute(
-        "UPDATE tasks SET done=1 WHERE id=? AND user_id=?",
+        "UPDATE tasks SET completed=1 WHERE id=? AND user_id=?",
         (task_id, session["user_id"])
     )
     conn.commit()
