@@ -27,7 +27,7 @@
       <td>{{ t["title"] }}</td>
       <td>{{ t["description"] }}</td>
       <td>
-        {% if t["done"] %}
+        {% if t.completed %}
           ✅ Terminée
         {% else %}
           ⏳ En cours
